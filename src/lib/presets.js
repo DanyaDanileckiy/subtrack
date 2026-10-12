@@ -84,7 +84,7 @@ export const PRESETS = [
   P('Boosty', 300, 'RUB', 'social', '#F15F2C', 'boosty', 'ru'),
 ];
 export const CATEGORIES = ['streaming', 'music', 'cloud', 'ai', 'software', 'gaming', 'news', 'vpn', 'education', 'books', 'social', 'health', 'shopping', 'other'];
-export const GROUPS = ['streaming', 'music', 'cloud', 'ai', 'software', 'gaming', 'news', 'vpn', 'ru'];
+export const GROUPS = ['streaming', 'music', 'books', 'cloud', 'ai', 'software', 'gaming', 'news', 'education', 'vpn', 'ru'];
 export const COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316', '#0ea5e9', '#84cc16', '#64748b'];
 // Map v0.1 categories to v0.2 ones on import/load.
 export const LEGACY_CAT = { video: 'streaming', work: 'software', games: 'gaming' };

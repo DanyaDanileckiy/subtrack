@@ -6,7 +6,7 @@ app.setAppUserModelId('com.danyadanileckiy.subtrack'); // required for Windows t
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200, height: 820, minWidth: 380, minHeight: 600, title: 'SubTrack',
+    width: 1200, height: 820, minWidth: 380, minHeight: 600, title: 'SubTrack', icon: path.join(process.resourcesPath || '', 'icon.png'),
     backgroundColor: '#f8fafc', autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });

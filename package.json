@@ -1,7 +1,7 @@
 {
   "name": "subtrack",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "SubTrack — трекер подписок / subscription tracker",
   "author": "DanyaDanileckiy",
@@ -45,7 +45,8 @@
           ]
         }
       ],
-      "signAndEditExecutable": false
+      "signAndEditExecutable": true,
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
@@ -55,7 +56,13 @@
     },
     "portable": {
       "artifactName": "SubTrack-Portable-${version}.${ext}"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ]
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",

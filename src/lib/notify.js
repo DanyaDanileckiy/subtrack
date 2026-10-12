@@ -40,8 +40,15 @@ export async function syncReminders(subs, days, fmt) {
         const [y, m, d] = date.split('-').map(Number);
         const at = new Date(y, m - 1, d - days, 10, 0, 0);
         if (at <= new Date()) continue;
-        const { title, body } = fmt(s, date);
+        const { title, body } = fmt(s, date, 'charge');
         notifications.push({ id: hashId(s.id + date), title, body, schedule: { at, allowWhileIdle: true } });
+      }
+      for (const s of list.filter((x) => x.trialEnd)) {
+        const [y, m, d] = s.trialEnd.split('-').map(Number);
+        const at = new Date(y, m - 1, d - Math.max(1, days), 10, 0, 0);
+        if (at <= new Date()) continue;
+        const { title, body } = fmt(s, s.trialEnd, 'trial');
+        notifications.push({ id: hashId(s.id + 'trial' + s.trialEnd), title, body, schedule: { at, allowWhileIdle: true } });
       }
       if (notifications.length) await LocalNotifications.schedule({ notifications });
     } catch (e) { console.warn('notif', e); }
@@ -53,9 +60,13 @@ export async function syncReminders(subs, days, fmt) {
     const date = nextCharge(s); const left = daysUntil(date);
     const key = s.id + '@' + date;
     if (left >= 0 && left <= days && !sent[key]) {
-      const { title, body } = fmt(s, date);
+      const { title, body } = fmt(s, date, 'charge');
       new Notification(title, { body, icon: './icon.svg' });
       sent[key] = Date.now();
+    }
+    if (s.trialEnd) {
+      const tl = daysUntil(s.trialEnd); const tk = s.id + '@trial@' + s.trialEnd;
+      if (tl >= 0 && tl <= Math.max(1, days) && !sent[tk]) { const { title, body } = fmt(s, s.trialEnd, 'trial'); new Notification(title, { body, icon: './icon.svg' }); sent[tk] = Date.now(); }
     }
   }
   localStorage.setItem(SENT, JSON.stringify(sent));

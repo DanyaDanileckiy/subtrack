@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Languages, LayoutDashboard, List, Settings as SettingsIcon, Plus, Pencil, Trash2, Moon, Sun, X, Bell, Download, Upload, RefreshCw, CalendarClock, Search, Wallet } from 'lucide-react';
+import { Languages, LayoutDashboard, CalendarDays, ChevronLeft, ChevronRight, ChevronDown, ExternalLink, CreditCard, Lightbulb, Gift, FileSpreadsheet, List, Settings as SettingsIcon, Plus, Pencil, Trash2, Moon, Sun, X, Bell, Download, Upload, RefreshCw, CalendarClock, Search, Wallet } from 'lucide-react';
 import { DICTS, LANGS, RTL, localeOf, relDays, unitLabel } from './lib/i18n.js';
 import { LOGOS } from './lib/logos.generated.js';
-import { CURRENCIES, convert, monthlyCost, nextCharge, daysUntil, totals, formatMoney, fmtISO } from './lib/money.js';
+import { CURRENCIES, POPULAR_CURRENCIES, convert, monthlyCost, nextCharge, daysUntil, totals, formatMoney, fmtISO, chargesBetween } from './lib/money.js';
 import { PRESETS, CATEGORIES, COLORS, GROUPS } from './lib/presets.js';
-import { load, save, exportJson, validateImport } from './lib/storage.js';
+import { load, save, exportJson, exportCsv, validateImport } from './lib/storage.js';
 import { loadCachedRates, fetchRates } from './lib/rates.js';
 import { requestPermission, permissionState, syncReminders, testNotification } from './lib/notify.js';
 
@@ -23,15 +23,15 @@ export default function App() {
     const m = {}; for (const [k, v] of Object.entries(settings.manualRates || {})) if (Number(v) > 0) m[k] = Number(v);
     return { ...rateInfo.rates, ...m };
   }, [rateInfo, settings.manualRates]);
-  const fmt = (v, c) => formatMoney(v, c, locale);
+  const fmt = (v, c) => '\u2068' + formatMoney(v, c, locale) + '\u2069';
 
   useEffect(() => { save(subs, settings); }, [subs, settings]);
   useEffect(() => { document.documentElement.classList.toggle('dark', settings.theme === 'dark'); document.documentElement.lang = settings.lang; document.documentElement.dir = RTL.has(settings.lang) ? 'rtl' : 'ltr'; }, [settings.theme, settings.lang]);
   const refreshRates = () => fetchRates().then(setRateInfo).catch(() => setRateInfo(loadCachedRates()));
   useEffect(() => { refreshRates(); }, []);
   useEffect(() => {
-    const run = () => syncReminders(subs, Number(settings.remindDays) || 0, (s, date) => ({
-      title: `${t.notifTitle}: ${s.name}`,
+    const run = () => syncReminders(subs, Number(settings.remindDays) || 0, (s, date, kind) => ({
+      title: `${kind === 'trial' ? t.trialNotif : t.notifTitle}: ${s.name}`,
       body: `${s.name}: ${fmt(Number(s.price), s.currency)} — ${new Date(date + 'T00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' })}`,
     }));
     run(); const i = setInterval(run, 3600e3); return () => clearInterval(i);
@@ -42,7 +42,7 @@ export default function App() {
   const remove = (id) => { if (confirm(t.confirmDelete)) { setSubs((p) => p.filter((x) => x.id !== id)); setEditing(null); } };
   const set = (patch) => setSettings((s) => ({ ...s, ...patch }));
 
-  const tabs = [['dashboard', t.dashboard, LayoutDashboard], ['subs', t.subs, List], ['settings', t.settings, SettingsIcon]];
+  const tabs = [['dashboard', t.dashboard, LayoutDashboard], ['subs', t.subs, List], ['calendar', t.calendar, CalendarDays], ['settings', t.settings, SettingsIcon]];
   return (
     <div className="min-h-screen text-slate-900 dark:text-slate-100 pb-24 md:pb-8" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <header className="sticky top-0 z-20 backdrop-blur bg-slate-50/80 dark:bg-slate-950/80 border-b border-slate-200/60 dark:border-slate-800">
@@ -67,7 +67,8 @@ export default function App() {
       <main className="max-w-5xl mx-auto px-4 py-5">
         {tab === 'dashboard' && <Dashboard {...{ subs, settings, rates, t, fmt, locale, setEditing }} />}
         {tab === 'subs' && <SubList {...{ subs, settings, rates, t, fmt, locale, setEditing }} />}
-        {tab === 'settings' && <SettingsView {...{ subs, setSubs, settings, set, t, rateInfo, refreshRates, flash, locale }} />}
+        {tab === 'calendar' && <CalendarView {...{ subs, settings, rates, t, fmt, locale, setEditing }} />}
+        {tab === 'settings' && <SettingsView {...{ subs, setSubs, settings, set, t, rateInfo, rates, refreshRates, flash, locale }} />}
       </main>
 
       <button className="sm:hidden fixed end-4 bottom-20 z-30 w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-xl flex items-center justify-center" onClick={() => setEditing({})} aria-label={t.add}><Plus /></button>
@@ -77,7 +78,7 @@ export default function App() {
         ))}
       </nav>
 
-      {editing && <Editor sub={editing} t={t} onSave={upsert} onDelete={remove} onClose={() => setEditing(null)} base={settings.base} />}
+      {editing && <Editor sub={editing} t={t} onSave={upsert} onDelete={remove} onClose={() => setEditing(null)} base={settings.base} locale={locale} />}
       {toast && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2 rounded-xl shadow-lg">{toast}</div>}
     </div>
   );
@@ -103,7 +104,11 @@ function whenLabel(iso, t, locale) {
 function Dashboard({ subs, settings, rates, t, fmt, locale, setEditing }) {
   const active = subs.filter((s) => s.active !== false);
   const { monthly, yearly } = totals(subs, settings.base, rates);
-  const upcoming = active.map((s) => ({ s, date: nextCharge(s) })).filter((x) => x.date && daysUntil(x.date) <= 30).sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = [
+    ...active.map((s) => ({ s, date: nextCharge(s), kind: 'charge' })),
+    ...active.filter((s) => s.trialEnd && daysUntil(s.trialEnd) >= 0).map((s) => ({ s, date: s.trialEnd, kind: 'trial' })),
+  ].filter((x) => x.date && daysUntil(x.date) <= 30).sort((a, b) => a.date.localeCompare(b.date));
+  const insights = active.map((s) => ({ s, y: convert(monthlyCost(s), s.currency, settings.base, rates) * 12 })).sort((a, b) => b.y - a.y).slice(0, 3);
   const byCat = {};
   for (const s of active) byCat[s.category || 'other'] = (byCat[s.category || 'other'] || 0) + convert(monthlyCost(s), s.currency, settings.base, rates);
   const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
@@ -130,11 +135,11 @@ function Dashboard({ subs, settings, rates, t, fmt, locale, setEditing }) {
           <h2 className="font-bold flex items-center gap-2 mb-3"><CalendarClock size={18} className="text-indigo-500" />{t.upcoming}</h2>
           {upcoming.length === 0 && <p className="text-sm text-slate-500 py-6 text-center">{t.noUpcoming}</p>}
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
-            {upcoming.map(({ s, date }) => { const w = whenLabel(date, t, locale); return (
-              <li key={s.id} className="py-2.5 flex items-center gap-3 cursor-pointer" onClick={() => setEditing(s)}>
+            {upcoming.map(({ s, date, kind }) => { const w = whenLabel(date, t, locale); return (
+              <li key={s.id + kind} className="py-2.5 flex items-center gap-3 cursor-pointer" onClick={() => setEditing(s)}>
                 <Avatar s={s} size={38} />
-                <div className="flex-1 min-w-0"><div className="font-semibold truncate">{s.name}</div><div className="text-xs text-slate-500">{w.date}</div></div>
-                <div className="text-end"><div className="font-semibold">{fmt(Number(s.price), s.currency)}</div>
+                <div className="flex-1 min-w-0"><div className="font-semibold truncate">{s.name}</div><div className="text-xs text-slate-500">{w.date}{kind === 'trial' && <span className="ms-1.5 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 px-1.5"><Gift size={11} />{t.trialEnd}</span>}</div></div>
+                <div className="text-end"><div className="font-semibold">{kind === 'trial' ? '—' : fmt(Number(s.price), s.currency)}</div>
                   <div className={`text-xs font-medium ${w.d <= settings.remindDays ? 'text-pink-500' : 'text-slate-500'}`}>{w.rel}</div></div>
               </li>); })}
           </ul>
@@ -150,8 +155,80 @@ function Dashboard({ subs, settings, rates, t, fmt, locale, setEditing }) {
               </div>
             ))}
           </div>
+          {insights.length > 1 && <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+            <h2 className="font-bold mb-2 flex items-center gap-2"><Lightbulb size={18} className="text-amber-500" />{t.insights}</h2>
+            <ul className="space-y-2">{insights.map(({ s, y }) => (
+              <li key={s.id} className="flex items-center gap-2 text-sm"><Avatar s={s} size={26} />
+                <span>{t.cancelToSave.split(/(\{name\}|\{amount\})/).map((part, i) => part === '{name}' ? <b key={i}>{s.name}</b> : part === '{amount}' ? <b key={i} className="text-emerald-600 dark:text-emerald-400">{fmt(y, settings.base)}</b> : part)}</span></li>))}</ul>
+          </div>}
         </section>
       </div>
+    </div>
+  );
+}
+
+function CalendarView({ subs, settings, rates, t, fmt, locale, setEditing }) {
+  const now = new Date();
+  const [ym, setYm] = useState([now.getFullYear(), now.getMonth()]);
+  const [y, m] = ym;
+  const first = new Date(y, m, 1), last = new Date(y, m + 1, 0);
+  const byDay = {}; let total = 0;
+  for (const s of subs.filter((x) => x.active !== false)) {
+    for (const d of chargesBetween(s, first, last)) { (byDay[d] ||= []).push({ s, kind: 'charge' }); total += convert(Number(s.price) || 0, s.currency, settings.base, rates); }
+    if (s.trialEnd && s.trialEnd >= fmtISO(first) && s.trialEnd <= fmtISO(last)) (byDay[s.trialEnd] ||= []).push({ s, kind: 'trial' });
+  }
+  // week starts on Monday except for locales that start on Sunday
+  const sundayFirst = /^(en-US|ja|ko|zh|he|ar|hi|th|pt-BR)/.test(locale);
+  const lead = (first.getDay() - (sundayFirst ? 0 : 1) + 7) % 7;
+  const wd = [...Array(7)].map((_, i) => new Date(2024, 0, (sundayFirst ? 7 : 1) + i).toLocaleDateString(locale, { weekday: 'short' }));
+  const cells = [...Array(lead).fill(null), ...[...Array(last.getDate())].map((_, i) => i + 1)];
+  const today = fmtISO(now);
+  return (
+    <section className="card p-4" data-testid="calendar">
+      <div className="flex items-center gap-2 mb-4">
+        <button className="btn-ghost !p-2" onClick={() => setYm(m === 0 ? [y - 1, 11] : [y, m - 1])} aria-label="prev"><ChevronLeft size={18} className="rtl:rotate-180" /></button>
+        <h2 className="font-bold text-lg flex-1 text-center capitalize">{first.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}</h2>
+        <button className="btn-ghost !p-2" onClick={() => setYm(m === 11 ? [y + 1, 0] : [y, m + 1])} aria-label="next"><ChevronRight size={18} className="rtl:rotate-180" /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400 mb-1">{wd.map((d) => <div key={d}>{d}</div>)}</div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => { if (!d) return <div key={'e' + i} />; const iso = fmtISO(new Date(y, m, d)); const items = byDay[iso] || []; return (
+          <div key={iso} className={`min-h-[64px] sm:min-h-[84px] rounded-xl p-1 ring-1 ${iso === today ? 'ring-indigo-400 bg-indigo-50/60 dark:bg-indigo-500/10' : 'ring-slate-100 dark:ring-slate-800'}`}>
+            <div className="text-xs font-semibold text-slate-500 text-start ps-1">{d}</div>
+            <div className="flex flex-wrap gap-0.5 mt-0.5">{items.map(({ s, kind }) => (
+              <button key={s.id + kind} title={`${s.name}${kind === 'trial' ? ' — ' + t.trialEnd : ''}`} onClick={() => setEditing(s)} className={`relative ${kind === 'trial' ? 'opacity-70' : ''}`}>
+                <Avatar s={s} size={22} />{kind === 'trial' && <Gift size={10} className="absolute -top-1 -end-1 text-amber-500 bg-white rounded-full" />}
+              </button>))}</div>
+            {items.some((x) => x.kind === 'charge') && <div className="hidden sm:block text-[10px] text-slate-500 truncate mt-0.5">{fmt(items.filter((x) => x.kind === 'charge').reduce((a, { s }) => a + convert(Number(s.price) || 0, s.currency, settings.base, rates), 0), settings.base)}</div>}
+          </div>); })}
+      </div>
+      <div className="mt-4 text-sm text-end">{t.monthTotal}: <b>{fmt(total, settings.base)}</b></div>
+    </section>
+  );
+}
+
+function CurrencyPicker({ value, onChange, locale, t, testid }) {
+  const [open, setOpen] = useState(false); const [q, setQ] = useState('');
+  const names = useMemo(() => { let dn; try { dn = new Intl.DisplayNames([locale, 'en'], { type: 'currency' }); } catch {} return (c) => { try { return dn ? dn.of(c) : c; } catch { return c; } }; }, [locale]);
+  const ql = q.trim().toLowerCase();
+  const match = (c) => !ql || c.toLowerCase().includes(ql) || names(c).toLowerCase().includes(ql);
+  const pop = POPULAR_CURRENCIES.filter((c) => CURRENCIES.includes(c) && match(c));
+  const rest = CURRENCIES.filter((c) => !POPULAR_CURRENCIES.includes(c) && match(c)).sort((a, b) => names(a).localeCompare(names(b), locale));
+  const pick = (c) => { onChange(c); setOpen(false); setQ(''); };
+  const Row = ({ c }) => <button type="button" onClick={() => pick(c)} className={`w-full flex items-center gap-2 px-3 py-1.5 text-sm text-start hover:bg-indigo-50 dark:hover:bg-indigo-500/10 ${c === value ? 'font-semibold text-indigo-600 dark:text-indigo-300' : ''}`}><span className="w-11 font-mono text-xs text-slate-500">{c}</span><span className="truncate">{names(c)}</span></button>;
+  return (
+    <div className="relative">
+      <button type="button" data-testid={testid} className="input flex items-center gap-2 text-start" onClick={() => setOpen(!open)}><span className="font-semibold">{value}</span><span className="truncate text-slate-500 flex-1">{names(value)}</span><ChevronDown size={16} className="text-slate-400" /></button>
+      {open && <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />}
+      {open && <div onKeyDown={(e) => e.key === 'Escape' && setOpen(false)} className="absolute end-0 z-50 mt-1 w-[min(300px,85vw)] rounded-xl bg-white dark:bg-slate-800 shadow-xl ring-1 ring-slate-200 dark:ring-slate-700">
+        <div className="p-2"><input autoFocus className="input" placeholder={t.searchCurrency} value={q} onChange={(e) => setQ(e.target.value)} data-testid={testid + '-search'} /></div>
+        <div className="max-h-64 overflow-y-auto pb-1">
+          {pop.length > 0 && <div className="px-3 pt-1 text-[11px] uppercase tracking-wide font-semibold text-slate-400">{t.popularCur}</div>}
+          {pop.map((c) => <Row key={c} c={c} />)}
+          {rest.length > 0 && <div className="px-3 pt-2 text-[11px] uppercase tracking-wide font-semibold text-slate-400">{t.allCur} ({CURRENCIES.length})</div>}
+          {rest.map((c) => <Row key={c} c={c} />)}
+        </div>
+      </div>}
     </div>
   );
 }
@@ -177,6 +254,11 @@ function SubList({ subs, settings, rates, t, fmt, locale, setEditing }) {
             <div className="flex-1 min-w-0">
               <div className="font-semibold truncate">{s.name}</div>
               <div className="text-xs text-slate-500">{t.cat[s.category] || s.category} · {date ? whenLabel(date, t, locale).date : '—'}{s.active === false ? ` · ${t.paused}` : ''}</div>
+              {(s.trialEnd || s.payment || s.link) && <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px]">
+                {s.trialEnd && daysUntil(s.trialEnd) >= 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 px-1.5"><Gift size={11} />{t.trial}: {whenLabel(s.trialEnd, t, locale).date}</span>}
+                {s.payment && <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-1.5 text-slate-600 dark:text-slate-300"><CreditCard size={11} />{s.payment}</span>}
+                {s.link && /^https?:\/\//.test(s.link) && <a href={s.link} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400"><ExternalLink size={11} />{t.openLink}</a>}
+              </div>}
             </div>
             <div className="text-end">
               <div className="font-bold">{fmt(Number(s.price), s.currency)}<span className="text-xs font-normal text-slate-500">{periodLabel(s, t, locale)}</span></div>
@@ -214,9 +296,9 @@ function PresetPicker({ t, onPick }) {
   );
 }
 
-function Editor({ sub, t, onSave, onDelete, onClose, base }) {
+function Editor({ sub, t, onSave, onDelete, onClose, base, locale }) {
   const isNew = !sub.id;
-  const [f, setF] = useState({ name: '', price: '', currency: base, period: 'month', customCount: 3, customUnit: 'month', nextDate: fmtISO(new Date()), category: 'other', color: COLORS[0], icon: '', active: true, ...sub });
+  const [f, setF] = useState({ name: '', price: '', currency: base, period: 'month', customCount: 3, customUnit: 'month', nextDate: fmtISO(new Date()), category: 'other', color: COLORS[0], icon: '', active: true, trialEnd: '', payment: '', notes: '', link: '', ...sub });
   const u = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const submit = (e) => { e.preventDefault(); if (!f.name.trim()) return; const { preset, ...rest } = f; onSave({ ...rest, id: f.id || crypto.randomUUID(), price: Number(f.price) || 0, icon: f.icon || (f.slug && LOGOS[f.slug] ? '' : f.name.trim()[0].toUpperCase()) }); };
   return (
@@ -231,7 +313,7 @@ function Editor({ sub, t, onSave, onDelete, onClose, base }) {
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2"><label className="label">{t.name}</label><input className="input" required value={f.name} onChange={u('name')} autoFocus /></div>
           <div><label className="label">{t.price}</label><input className="input" type="number" step="0.01" min="0" required value={f.price} onChange={u('price')} /></div>
-          <div><label className="label">{t.currency}</label><select className="input" value={f.currency} onChange={u('currency')}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
+          <div><label className="label">{t.currency}</label><CurrencyPicker value={f.currency} onChange={(c) => setF({ ...f, currency: c })} locale={locale} t={t} testid="sub-currency" /></div>
           <div><label className="label">{t.period}</label><select className="input" value={f.period} onChange={u('period')}>{['week', 'month', 'year', 'custom'].map((p) => <option key={p} value={p}>{t[p]}</option>)}</select></div>
           <div><label className="label">{t.nextDate}</label><input className="input" type="date" value={f.nextDate || ''} onChange={u('nextDate')} /></div>
           {f.period === 'custom' && <div className="col-span-2 flex items-center gap-2 text-sm"><span>{t.every}</span><input className="input !w-20" type="number" min="1" value={f.customCount} onChange={u('customCount')} />
@@ -241,6 +323,10 @@ function Editor({ sub, t, onSave, onDelete, onClose, base }) {
           <div className="col-span-2"><label className="label">{t.color}</label><div className="flex flex-wrap gap-2">{COLORS.concat(sub.color && !COLORS.includes(sub.color) ? [sub.color] : []).map((c) => (
             <button type="button" key={c} onClick={() => setF({ ...f, color: c })} className={`w-8 h-8 rounded-full ring-offset-2 dark:ring-offset-slate-900 ${f.color === c ? 'ring-2 ring-indigo-500' : ''}`} style={{ background: c }} />))}
             <input type="color" value={f.color} onChange={u('color')} className="w-8 h-8 rounded-full overflow-hidden cursor-pointer" /></div></div>
+          <div><label className="label">{t.trialEnd}</label><input className="input" type="date" value={f.trialEnd || ''} onChange={u('trialEnd')} /></div>
+          <div><label className="label">{t.payment}</label><input className="input" maxLength={40} value={f.payment || ''} onChange={u('payment')} placeholder="Visa •• 4242" /></div>
+          <div className="col-span-2"><label className="label">{t.link}</label><input className="input" type="url" value={f.link || ''} onChange={u('link')} placeholder="https://" /></div>
+          <div className="col-span-2"><label className="label">{t.notes}</label><textarea className="input min-h-[64px]" maxLength={1000} value={f.notes || ''} onChange={u('notes')} /></div>
           <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={f.active !== false} onChange={u('active')} className="w-4 h-4 accent-indigo-500" />{t.isActive}</label>
         </div>
         <div className="flex gap-2 mt-5">
@@ -254,7 +340,7 @@ function Editor({ sub, t, onSave, onDelete, onClose, base }) {
   );
 }
 
-function SettingsView({ subs, setSubs, settings, set, t, rateInfo, refreshRates, flash, locale }) {
+function SettingsView({ subs, setSubs, settings, set, t, rateInfo, rates, refreshRates, flash, locale }) {
   const fileRef = useRef();
   const [perm, setPerm] = useState('default');
   useEffect(() => { permissionState().then(setPerm).catch(() => {}); }, []);
@@ -269,7 +355,7 @@ function SettingsView({ subs, setSubs, settings, set, t, rateInfo, refreshRates,
     <div className="grid md:grid-cols-2 gap-4">
       <section className="card p-4 space-y-3">
         <h2 className="font-bold">{t.rates}</h2>
-        <div><label className="label">{t.baseCurrency}</label><select className="input" value={settings.base} onChange={(e) => set({ base: e.target.value })}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
+        <div><label className="label">{t.baseCurrency}</label><CurrencyPicker value={settings.base} onChange={(c) => set({ base: c })} locale={locale} t={t} testid="base-currency" /></div>
         <div className="flex items-center gap-2 text-xs text-slate-500"><span className={`w-2 h-2 rounded-full ${rateInfo.source === 'online' ? 'bg-emerald-500' : 'bg-amber-500'}`} /><span className="flex-1">{status}</span><button className="btn-ghost !py-1" onClick={refreshRates}><RefreshCw size={14} />{t.refresh}</button></div>
         <div className="label">{t.manualRate}</div>
         <div className="grid grid-cols-2 gap-2">{used.map((c) => (
@@ -289,6 +375,7 @@ function SettingsView({ subs, setSubs, settings, set, t, rateInfo, refreshRates,
         <p className="text-xs text-slate-500">{t.dataLocal}</p>
         <div className="flex flex-wrap gap-2">
           <button className="btn-ghost ring-1 ring-slate-200 dark:ring-slate-700" onClick={() => exportJson(subs, settings)}><Download size={16} />{t.exportJson}</button>
+          <button className="btn-ghost ring-1 ring-slate-200 dark:ring-slate-700" onClick={() => exportCsv(subs, settings.base, rates)}><FileSpreadsheet size={16} />{t.exportCsv}</button>
           <button className="btn-ghost ring-1 ring-slate-200 dark:ring-slate-700" onClick={() => fileRef.current.click()}><Upload size={16} />{t.importJson}</button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={doImport} />
         </div>

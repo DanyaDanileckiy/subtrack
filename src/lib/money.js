@@ -1,11 +1,10 @@
 // Pure helpers: periods, dates, currency conversion. No DOM, testable in Node.
-export const CURRENCIES = ['RUB', 'USD', 'EUR', 'GBP', 'KZT', 'UAH', 'BYN', 'TRY', 'CNY', 'JPY', 'INR', 'PLN', 'GEL', 'AMD', 'UZS'];
 
-// Approximate fallback rates: units of currency per 1 USD (used offline when nothing cached).
-export const FALLBACK_RATES = {
-  USD: 1, RUB: 90, EUR: 0.92, GBP: 0.79, KZT: 480, UAH: 41, BYN: 3.3, TRY: 34,
-  CNY: 7.2, JPY: 150, INR: 84, PLN: 4, GEL: 2.7, AMD: 390, UZS: 12700,
-};
+import { SNAPSHOT_RATES } from './currencies.generated.js';
+// Every currency known to open.er-api.com; offline fallback = committed snapshot (units per 1 USD).
+export const FALLBACK_RATES = SNAPSHOT_RATES;
+export const CURRENCIES = Object.keys(SNAPSHOT_RATES);
+export const POPULAR_CURRENCIES = ['RUB', 'USD', 'EUR', 'GBP', 'CNY', 'KZT', 'UAH', 'BYN', 'TRY', 'JPY', 'INR', 'PLN', 'GEL', 'AMD', 'UZS', 'AED', 'ILS', 'BRL', 'KRW', 'CAD'];
 
 /** Convert amount from one currency to another using USD-based rates. */
 export function convert(amount, from, to, rates) {
@@ -34,7 +33,7 @@ export function monthlyCost(sub) {
   return (Number(sub.price) || 0) * ((365.25 / 12) / periodDays(sub));
 }
 
-function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+export function parseDate(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
 export function fmtISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -67,13 +66,33 @@ export function addPeriod(date, sub) {
 }
 
 /** Next charge date on or after `today` (rolls past dates forward). Returns ISO string. */
+/** k-th occurrence after the anchor date. Month-based periods are computed from the anchor,
+ *  so the original day of month is kept (31 => last day of shorter months, then back to 31). */
+export function occurrence(sub, k) {
+  const start = parseDate(sub.nextDate);
+  const months = sub.period === 'month' ? 1 : sub.period === 'year' ? 12 : sub.period === 'custom' && (sub.customUnit || 'month') === 'month' ? Math.max(1, Number(sub.customCount) || 1)
+    : sub.period === 'custom' && sub.customUnit === 'year' ? 12 * Math.max(1, Number(sub.customCount) || 1) : 0;
+  if (months) return addMonthsClamped(start, months * k);
+  const days = sub.period === 'week' ? 7 : (sub.customUnit === 'week' ? 7 : 1) * Math.max(1, Number(sub.customCount) || 1);
+  const d = new Date(start); d.setDate(d.getDate() + days * k); return d;
+}
+
+/** Next charge date on or after `today` (rolls past dates forward). Returns ISO string. */
 export function nextCharge(sub, today = new Date()) {
   if (!sub.nextDate) return null;
   const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  let d = parseDate(sub.nextDate);
-  let guard = 0;
-  while (d < t && guard++ < 5000) d = addPeriod(d, sub);
+  let k = 0, d = parseDate(sub.nextDate);
+  while (d < t && k < 20000) d = occurrence(sub, ++k);
   return fmtISO(d);
+}
+
+/** All charge dates (ISO) of a subscription within [from, to] inclusive. */
+export function chargesBetween(sub, from, to) {
+  if (!sub.nextDate) return [];
+  const out = []; let k = 0, d = parseDate(sub.nextDate);
+  while (d < from && k < 20000) d = occurrence(sub, ++k);
+  while (d <= to && out.length < 400) { out.push(fmtISO(d)); d = occurrence(sub, ++k); }
+  return out;
 }
 
 export function daysUntil(iso, today = new Date()) {

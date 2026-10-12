@@ -67,3 +67,44 @@ export function relDays(n, locale) {
 export function unitLabel(n, unit, locale) {
   try { return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'long' }).format(n); } catch { return `${n} ${unit}`; }
 }
+
+// v0.3 strings (same '|' format). cancelToSave uses {name} and {amount} placeholders.
+export const KEYS2 = 'calendar trial trialEnd trialNotif payment notes link openLink insights cancelToSave exportCsv searchCurrency popularCur allCur monthTotal'.split(' ');
+const RAW2 = {
+ru: 'Календарь|Пробный период|Конец пробного периода|Заканчивается пробный период|Способ оплаты / карта|Заметки|Ссылка|Открыть|Где сэкономить|Отмените {name} — сэкономите {amount} в год|Экспорт CSV|Найти валюту…|Популярные|Все валюты|Итого за месяц',
+en: 'Calendar|Free trial|Trial ends|Free trial ends|Payment method / card|Notes|Link|Open|Savings ideas|Cancel {name} to save {amount} a year|Export CSV|Find a currency…|Popular|All currencies|Total this month',
+es: 'Calendario|Prueba gratis|Fin de la prueba|La prueba gratuita termina|Método de pago / tarjeta|Notas|Enlace|Abrir|Ideas de ahorro|Cancela {name} y ahorra {amount} al año|Exportar CSV|Buscar moneda…|Populares|Todas las monedas|Total del mes',
+pt: 'Calendário|Teste grátis|Fim do teste|O teste grátis termina|Forma de pagamento / cartão|Notas|Link|Abrir|Onde economizar|Cancele {name} e economize {amount} por ano|Exportar CSV|Buscar moeda…|Populares|Todas as moedas|Total do mês',
+fr: 'Calendrier|Essai gratuit|Fin de l\'essai|L\'essai gratuit se termine|Moyen de paiement / carte|Notes|Lien|Ouvrir|Idées d\'économies|Résiliez {name} pour économiser {amount} par an|Exporter CSV|Rechercher une devise…|Populaires|Toutes les devises|Total du mois',
+de: 'Kalender|Gratis-Test|Testende|Gratis-Test endet|Zahlungsmittel / Karte|Notizen|Link|Öffnen|Sparideen|Kündige {name} und spare {amount} pro Jahr|CSV exportieren|Währung suchen…|Beliebt|Alle Währungen|Summe im Monat',
+it: 'Calendario|Prova gratuita|Fine prova|La prova gratuita sta per finire|Metodo di pagamento / carta|Note|Link|Apri|Idee di risparmio|Disdici {name} e risparmi {amount} all\'anno|Esporta CSV|Cerca valuta…|Popolari|Tutte le valute|Totale del mese',
+pl: 'Kalendarz|Okres próbny|Koniec okresu próbnego|Kończy się okres próbny|Metoda płatności / karta|Notatki|Link|Otwórz|Gdzie zaoszczędzić|Anuluj {name}, by oszczędzić {amount} rocznie|Eksport CSV|Znajdź walutę…|Popularne|Wszystkie waluty|Suma w miesiącu',
+uk: 'Календар|Пробний період|Кінець пробного періоду|Закінчується пробний період|Спосіб оплати / картка|Нотатки|Посилання|Відкрити|Де заощадити|Скасуйте {name} — заощадите {amount} на рік|Експорт CSV|Знайти валюту…|Популярні|Усі валюти|Разом за місяць',
+be: 'Каляндар|Пробны перыяд|Канец пробнага перыяду|Заканчваецца пробны перыяд|Спосаб аплаты / картка|Нататкі|Спасылка|Адкрыць|Дзе зэканоміць|Скасуйце {name} — зэканоміце {amount} за год|Экспарт CSV|Знайсці валюту…|Папулярныя|Усе валюты|Разам за месяц',
+kk: 'Күнтізбе|Сынақ кезеңі|Сынақ кезеңінің соңы|Сынақ кезеңі аяқталуда|Төлем тәсілі / карта|Жазбалар|Сілтеме|Ашу|Үнемдеу идеялары|{name} жазылымын тоқтатып, жылына {amount} үнемдеңіз|CSV экспорттау|Валюта табу…|Танымал|Барлық валюталар|Айдағы жиынтық',
+tr: 'Takvim|Ücretsiz deneme|Deneme bitişi|Ücretsiz deneme bitiyor|Ödeme yöntemi / kart|Notlar|Bağlantı|Aç|Tasarruf fikirleri|{name} iptal edilirse yılda {amount} tasarruf|CSV dışa aktar|Para birimi ara…|Popüler|Tüm para birimleri|Bu ayın toplamı',
+nl: 'Kalender|Gratis proef|Einde proef|Gratis proef eindigt|Betaalmethode / kaart|Notities|Link|Openen|Besparingstips|Zeg {name} op en bespaar {amount} per jaar|CSV exporteren|Valuta zoeken…|Populair|Alle valuta|Totaal deze maand',
+sv: 'Kalender|Gratis provperiod|Provperioden slutar|Provperioden tar slut|Betalsätt / kort|Anteckningar|Länk|Öppna|Spartips|Säg upp {name} och spara {amount} per år|Exportera CSV|Sök valuta…|Populära|Alla valutor|Totalt denna månad',
+nb: 'Kalender|Gratis prøveperiode|Prøveperioden slutter|Prøveperioden slutter snart|Betalingsmåte / kort|Notater|Lenke|Åpne|Spareforslag|Si opp {name} og spar {amount} i året|Eksporter CSV|Finn valuta…|Populære|Alle valutaer|Totalt denne måneden',
+da: 'Kalender|Gratis prøveperiode|Prøveperioden slutter|Prøveperioden slutter snart|Betalingsmetode / kort|Noter|Link|Åbn|Spareforslag|Opsig {name} og spar {amount} om året|Eksportér CSV|Find valuta…|Populære|Alle valutaer|I alt denne måned',
+fi: 'Kalenteri|Ilmainen kokeilu|Kokeilu päättyy|Ilmainen kokeilu päättyy|Maksutapa / kortti|Muistiinpanot|Linkki|Avaa|Säästövinkit|Peru {name} ja säästä {amount} vuodessa|Vie CSV|Etsi valuutta…|Suositut|Kaikki valuutat|Yhteensä tässä kuussa',
+cs: 'Kalendář|Zkušební verze|Konec zkušební doby|Zkušební doba končí|Platební metoda / karta|Poznámky|Odkaz|Otevřít|Kde ušetřit|Zrušte {name} a ušetříte {amount} ročně|Export CSV|Najít měnu…|Oblíbené|Všechny měny|Celkem za měsíc',
+ro: 'Calendar|Perioadă de probă|Sfârșitul probei|Perioada de probă se încheie|Metodă de plată / card|Note|Link|Deschide|Idei de economisire|Anulează {name} și economisești {amount} pe an|Export CSV|Caută monedă…|Populare|Toate monedele|Total luna aceasta',
+hu: 'Naptár|Ingyenes próba|Próbaidő vége|Lejár az ingyenes próba|Fizetési mód / kártya|Jegyzetek|Link|Megnyitás|Spórolási ötletek|Mondd le: {name}, és évi {amount} megmarad|CSV exportálása|Pénznem keresése…|Népszerű|Minden pénznem|E havi összeg',
+el: 'Ημερολόγιο|Δωρεάν δοκιμή|Λήξη δοκιμής|Η δωρεάν δοκιμή λήγει|Τρόπος πληρωμής / κάρτα|Σημειώσεις|Σύνδεσμος|Άνοιγμα|Ιδέες εξοικονόμησης|Ακυρώστε το {name} και εξοικονομήστε {amount} τον χρόνο|Εξαγωγή CSV|Εύρεση νομίσματος…|Δημοφιλή|Όλα τα νομίσματα|Σύνολο μήνα',
+he: 'לוח שנה|תקופת ניסיון|סיום הניסיון|תקופת הניסיון מסתיימת|אמצעי תשלום / כרטיס|הערות|קישור|פתיחה|רעיונות לחיסכון|ביטול {name} יחסוך {amount} בשנה|ייצוא CSV|חיפוש מטבע…|פופולריים|כל המטבעות|סה״כ החודש',
+ar: 'التقويم|تجربة مجانية|نهاية التجربة|تنتهي التجربة المجانية|طريقة الدفع / البطاقة|ملاحظات|رابط|فتح|أفكار للتوفير|ألغِ {name} لتوفير {amount} سنويًا|تصدير CSV|ابحث عن عملة…|شائعة|كل العملات|إجمالي الشهر',
+hi: 'कैलेंडर|मुफ़्त ट्रायल|ट्रायल समाप्ति|मुफ़्त ट्रायल समाप्त हो रहा है|भुगतान तरीका / कार्ड|नोट्स|लिंक|खोलें|बचत के सुझाव|{name} रद्द करें और साल में {amount} बचाएँ|CSV निर्यात|मुद्रा खोजें…|लोकप्रिय|सभी मुद्राएँ|इस माह कुल',
+zh: '日历|免费试用|试用结束|免费试用即将结束|支付方式 / 卡片|备注|链接|打开|省钱建议|取消 {name} 每年可省 {amount}|导出 CSV|查找货币…|常用|全部货币|本月合计',
+ja: 'カレンダー|無料トライアル|トライアル終了日|無料トライアルが終了します|支払い方法 / カード|メモ|リンク|開く|節約のヒント|{name} を解約すると年間 {amount} の節約|CSVをエクスポート|通貨を検索…|よく使う通貨|すべての通貨|今月の合計',
+ko: '캘린더|무료 체험|체험 종료일|무료 체험이 곧 끝납니다|결제 수단 / 카드|메모|링크|열기|절약 아이디어|{name} 해지 시 연간 {amount} 절약|CSV 내보내기|통화 검색…|자주 쓰는 통화|모든 통화|이번 달 합계',
+id: 'Kalender|Uji coba gratis|Akhir uji coba|Uji coba gratis berakhir|Metode pembayaran / kartu|Catatan|Tautan|Buka|Ide hemat|Batalkan {name} untuk hemat {amount} per tahun|Ekspor CSV|Cari mata uang…|Populer|Semua mata uang|Total bulan ini',
+vi: 'Lịch|Dùng thử miễn phí|Hết hạn dùng thử|Sắp hết hạn dùng thử|Phương thức thanh toán / thẻ|Ghi chú|Liên kết|Mở|Gợi ý tiết kiệm|Hủy {name} để tiết kiệm {amount} mỗi năm|Xuất CSV|Tìm tiền tệ…|Phổ biến|Tất cả tiền tệ|Tổng tháng này',
+th: 'ปฏิทิน|ทดลองใช้ฟรี|วันสิ้นสุดทดลองใช้|การทดลองใช้ฟรีกำลังจะสิ้นสุด|วิธีชำระเงิน / บัตร|บันทึก|ลิงก์|เปิด|ไอเดียประหยัด|ยกเลิก {name} ประหยัดได้ {amount} ต่อปี|ส่งออก CSV|ค้นหาสกุลเงิน…|ยอดนิยม|สกุลเงินทั้งหมด|รวมเดือนนี้',
+};
+for (const [code, raw] of Object.entries(RAW2)) {
+  const parts = raw.split('|');
+  if (parts.length !== KEYS2.length) throw new Error(`i18n v0.3 ${code}: ${parts.length} != ${KEYS2.length}`);
+  KEYS2.forEach((k, i) => { DICTS[code][k] = parts[i]; });
+}
+export const ALL_KEYS = [...KEYS, ...KEYS2];
