@@ -1,9 +1,11 @@
 import { Capacitor } from '@capacitor/core';
+import { LEGACY_CAT } from './presets.js';
+const fixCat = (c) => LEGACY_CAT[c] || c || 'other';
 const KEY = 'subtrack.data.v1';
 export const DEFAULT_SETTINGS = { lang: 'ru', theme: 'light', base: 'RUB', remindDays: 2, manualRates: {} };
 
 export function load() {
-  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return { subs: d.subs || [], settings: { ...DEFAULT_SETTINGS, ...d.settings } }; } catch {}
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return { subs: (d.subs || []).map((s) => ({ ...s, category: fixCat(s.category) })), settings: { ...DEFAULT_SETTINGS, ...d.settings } }; } catch {}
   return { subs: [], settings: DEFAULT_SETTINGS };
 }
 export function save(subs, settings) { localStorage.setItem(KEY, JSON.stringify({ subs, settings })); }
@@ -15,7 +17,7 @@ export function validateImport(obj) {
     id: s.id || crypto.randomUUID(), name: s.name, price: Number(s.price) || 0, currency: s.currency || 'USD',
     period: ['week', 'month', 'year', 'custom'].includes(s.period) ? s.period : 'month',
     customCount: s.customCount || 1, customUnit: s.customUnit || 'month', nextDate: s.nextDate || null,
-    category: s.category || 'other', color: s.color || '#6366f1', icon: s.icon || s.name.slice(0, 1).toUpperCase(), active: s.active !== false,
+    category: fixCat(s.category), color: s.color || '#6366f1', icon: s.icon ?? (s.slug ? '' : s.name.slice(0, 1).toUpperCase()), slug: s.slug || null, active: s.active !== false,
   }));
 }
 
