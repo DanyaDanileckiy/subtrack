@@ -1,0 +1,82 @@
+{
+  "name": "subtrack",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SubTrack — трекер подписок / subscription tracker",
+  "author": "DanyaDanileckiy",
+  "license": "MIT",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/",
+    "electron": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "android:sync": "npm run build && cap sync android",
+    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
+  },
+  "build": {
+    "appId": "com.danyadanileckiy.subtrack",
+    "productName": "SubTrack",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json",
+      "!node_modules/**"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "SubTrack-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "SubTrack-Portable-${version}.${ext}"
+    }
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/filesystem": "^7.1.9",
+    "@capacitor/local-notifications": "^7.0.7",
+    "@capacitor/share": "^7.0.4",
+    "@fontsource-variable/inter": "^5.3.0",
+    "lucide-react": "^0.395.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.1",
+    "electron": "^38.8.6",
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.64.0",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^3.4.19",
+    "vite": "^5.4.21"
+  }
+}
