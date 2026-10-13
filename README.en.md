@@ -1,44 +1,77 @@
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:22d37a&height=140&section=header&text=SubTrack&fontSize=48&fontColor=fff&fontAlignY=35" width="100%"/>
+
+**Offline subscription tracker for Android & Windows**
+
 [Русский](README.md) · [English](README.en.md) · [Español](README.es.md) · [日本語](README.ja.md) · [Français](README.fr.md) · [Deutsch](README.de.md)
 
-# SubTrack — subscription tracker
+[![Download Android](https://img.shields.io/badge/Download_Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-0.3.0-debug.apk)
+[![Download Windows Setup](https://img.shields.io/badge/Download_Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-Setup-0.3.0.exe)
+[![Portable](https://img.shields.io/badge/Portable-0078D6?style=for-the-badge)](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-Portable-0.3.0.exe)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-A free, open-source subscription tracker for Android and Windows. It works offline, with no sign-up, no servers and no API keys. All data stays on your device.
+</div>
+
+---
+
+## About
+
+A free open-source app for tracking subscriptions. Works **fully offline**, no sign-up, servers or analytics. All data stays on your device.
 
 ![SubTrack](docs/08-dashboard-en.png)
 
+## Direct download links
+
+| Platform | File | Link |
+|----------|------|------|
+| **Android** | `SubTrack-0.3.0-debug.apk` | [Download APK](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-0.3.0-debug.apk) |
+| **Windows (installer)** | `SubTrack-Setup-0.3.0.exe` | [Download Setup](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-Setup-0.3.0.exe) |
+| **Windows (portable)** | `SubTrack-Portable-0.3.0.exe` | [Download Portable](https://github.com/DanyaDanileckiy/subtrack/releases/download/v0.3.0/SubTrack-Portable-0.3.0.exe) |
+
+> **Windows SmartScreen:** file is unsigned → “More info” → “Run anyway”.  
+> **Android:** allow installs from unknown sources.
+
 ## Features
-- Subscriptions with price, currency, billing period (week / month / year / custom), charge date, category, color, logo, payment method, link and notes.
-- Month-end dates are handled correctly: a subscription started on the 31st is charged on the last day of shorter months, then on the 31st again.
-- Free trials: an end date with its own reminder before the first charge.
-- Dashboard: monthly and yearly totals in your base currency, a per-category breakdown, and "Cancel X to save Y a year" tips.
-- A monthly calendar of charges with a total for the month.
-- **All 166 currencies** from open.er-api.com, with localized names, search and popular currencies pinned on top. Offline, the app uses cached rates or a built-in snapshot for every currency, and you can override any rate manually.
-- Reminders: local notifications on Android, system notifications on Windows.
-- 70 popular services with real Simple Icons logos.
-- 30 UI languages, with RTL for Hebrew and Arabic.
-- JSON export and import, CSV export for Excel or Google Sheets, light and dark theme.
+
+- Subscriptions with price, currency, period, charge date, category, color, logo, payment method and notes
+- Correct handling of month-end dates (the 31st)
+- Free trials with reminders
+- Dashboard: monthly/yearly totals, category breakdown, “Cancel X to save Y a year” tips
+- Charge calendar
+- **166 currencies** with offline rates and manual override
+- Reminders (local on Android, system on Windows)
+- 70 popular services with logos
+- **30 languages** (including RTL: Hebrew, Arabic)
+- JSON / CSV export, light and dark theme
 
 | | |
 |---|---|
-| ![](docs/03-calendar-ru.png) | ![](docs/04-currency-picker-ru.png) |
-| ![](docs/06-subscriptions-he-rtl-bidi.png) | ![](docs/11-mobile-calendar-ru.png) |
+| ![Calendar](docs/03-calendar-ru.png) | ![Currencies](docs/04-currency-picker-ru.png) |
+| ![RTL](docs/06-subscriptions-he-rtl-bidi.png) | ![Mobile](docs/11-mobile-calendar-ru.png) |
 
-## Download
-Get the files from [Releases](../../releases/latest): `SubTrack-0.3.0-debug.apk` (Android), `SubTrack-Setup-0.3.0.exe` (Windows installer) and `SubTrack-Portable-0.3.0.exe` (no install). The files are unsigned, so Windows SmartScreen may warn you ("More info" → "Run anyway"), and Android needs installs from unknown sources allowed.
+## Privacy
+
+No accounts, analytics, ads or backend. The only network request is public exchange rates (open.er-api.com, no key).
 
 ## Build
+
 ```bash
 npm install
 npm run dev          # http://localhost:5173
-npm test
-npm run dist:win     # Windows Setup + Portable (Linux: wine)
-npm run android:apk  # Android debug APK (Android SDK + JDK 21)
+npm run dist:win     # Windows Setup + Portable
+npm run android:apk  # Android APK
 ```
 
-Stack: React 18, Vite, Tailwind CSS, Capacitor 7, Electron, electron-builder.
-
-## Privacy
-No accounts, analytics, ads or backend. The only network request fetches public exchange rates (open.er-api.com, no key).
+**Stack:** React 18 · Vite · Tailwind CSS · Capacitor 7 · Electron
 
 ## License
-MIT. Logos come from [Simple Icons](https://simpleicons.org) (CC0); trademarks belong to their owners, see [NOTICE](NOTICE). See the [CHANGELOG](CHANGELOG.md) for release history.
+
+MIT. Logos — [Simple Icons](https://simpleicons.org) (CC0).  
+Changelog — [CHANGELOG.md](CHANGELOG.md).
+
+<div align="center">
+
+**Made with ❤️ for people who want to control their subscriptions without the cloud**
+
+</div>
